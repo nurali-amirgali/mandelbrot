@@ -2,7 +2,7 @@ import pygame
 import sys
 import time
 import numpy as np
-from numba import njit
+from numba import njit, prange
 
 WIDTH = 800
 HEIGHT = 600
@@ -28,14 +28,14 @@ maxColor = (201, 178, 0) #(255,255,255)
 def lerpColor(color1, color2, t):
     return tuple(int(c1 + (c2 - c1) * t) for c1, c2 in zip(color1, color2))
 
-@njit
+@njit(parallel=True)
 def computeFractal(width, height, graphRangeX, graphRangeY, maxTurns):
-    pixels = np.zeros((height, width), dtype=np.uint8)
+    pixels = np.zeros((height, width), dtype=np.uint16)
     
     rangeX = abs(graphRangeX[0] - graphRangeX[1])
     rangeY = abs(graphRangeY[0] - graphRangeY[1])
     
-    for row in range(height):
+    for row in prange(height):
         for col in range(width):            
             graphX = col * (rangeX/width) - abs(graphRangeX[0])
             graphY = row * (rangeY/height) - abs(graphRangeY[0])
@@ -44,7 +44,7 @@ def computeFractal(width, height, graphRangeX, graphRangeY, maxTurns):
             x, y = 0, 0
             turns = 0
             
-            while turns <= maxTurns:
+            while turns < maxTurns:
                 turns += 1
                 
                 newX = x * x - y * y + cx
@@ -58,7 +58,9 @@ def computeFractal(width, height, graphRangeX, graphRangeY, maxTurns):
 
 def updateFractal():
     result = [[(255,255,255)] * WIDTH for _ in range(HEIGHT)]
+    startTime = time.perf_counter()
     fractal = computeFractal(WIDTH, HEIGHT, graphRangeX, graphRangeY, maxTurns)
+    endTime = time.perf_counter()
     for y in range(HEIGHT):
         for x in range(WIDTH):
             turns = fractal[y, x]
@@ -68,18 +70,24 @@ def updateFractal():
                 t = turns/maxTurns
                 color = lerpColor(minColor, maxColor, t)
                 result[y][x] = color
-    return result
+    computeTime = endTime - startTime
+    return result, computeTime
 
 times = []
+pygameTimes = []
+updateFractal()
 for i in range(3):
     startTime = time.perf_counter()
-    result = updateFractal()
+    result, timeTaken = updateFractal()
     endTime = time.perf_counter()
-    times.append(endTime - startTime)
-    print(f"pass {i} completed")
-    
-average = sum(times)/3
+    pygameTimes.append(endTime - startTime)
+    times.append(timeTaken)
+    print(f"pass {i+1} completed")
+
+average = sum(times)/2
+pygameAverage = sum(pygameTimes)/2
 print(f"took: {round(average, 2)} seconds on average")
+print(f"pygame took: {round(pygameAverage, 2)} seconds on average")
 print(f"FPS: {round(1/average, 2)}")
     
 running = True
@@ -103,4 +111,3 @@ while running:
     pygame.display.flip()
 
 pygame.quit()
-sys.exit()
