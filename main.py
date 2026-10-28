@@ -1,5 +1,8 @@
 import pygame
 import sys
+import time
+import numpy as np
+from numba import njit
 
 WIDTH = 800
 HEIGHT = 600
@@ -20,41 +23,64 @@ graphRangeY = (-1,1)
 maxTurns = 200
 
 minColor = (1, 38, 97)
-maxColor = (255,255,255)
+maxColor = (201, 178, 0) #(255,255,255)
 
 def lerpColor(color1, color2, t):
     return tuple(int(c1 + (c2 - c1) * t) for c1, c2 in zip(color1, color2))
+
+@njit
+def computeFractal(width, height, graphRangeX, graphRangeY, maxTurns):
+    pixels = np.zeros((height, width), dtype=np.uint8)
     
-def updateGraph():
-    pixels = [[(255,255,255)] * WIDTH for _ in range(HEIGHT)] #[y][x]
-    for row in range(HEIGHT):
-        for col in range(WIDTH):
-            rangeX = abs(graphRangeX[0] - graphRangeX[1])
-            rangeY = abs(graphRangeY[0] - graphRangeY[1])
+    rangeX = abs(graphRangeX[0] - graphRangeX[1])
+    rangeY = abs(graphRangeY[0] - graphRangeY[1])
+    
+    for row in range(height):
+        for col in range(width):            
+            graphX = col * (rangeX/width) - abs(graphRangeX[0])
+            graphY = row * (rangeY/height) - abs(graphRangeY[0])
             
-            graphX = col * (rangeX/WIDTH) - abs(graphRangeX[0])
-            graphY = row * (rangeY/HEIGHT) - abs(graphRangeY[0])
             cx, cy = graphX, graphY
-            z = (0,0)
+            x, y = 0, 0
             turns = 0
+            
             while turns <= maxTurns:
                 turns += 1
-                x, y = z
+                
                 newX = x * x - y * y + cx
                 newY = 2 * x * y + cy
-                z = (newX, newY)
-                if (x * x + y * y) > 4:
+                
+                x, y = newX, newY
+                if x * x + y * y > 4:
                     break
+            pixels[row, col] = turns
+    return pixels
+
+def updateFractal():
+    result = [[(255,255,255)] * WIDTH for _ in range(HEIGHT)]
+    fractal = computeFractal(WIDTH, HEIGHT, graphRangeX, graphRangeY, maxTurns)
+    for y in range(HEIGHT):
+        for x in range(WIDTH):
+            turns = fractal[y, x]
             if turns >= maxTurns:
-                pixels[row][col] = (0,0,0)
+                result[y][x] = (0,0,0)
             else:
                 t = turns/maxTurns
                 color = lerpColor(minColor, maxColor, t)
-                pixels[row][col] = color
-    return pixels
-                
+                result[y][x] = color
+    return result
+
+times = []
+for i in range(3):
+    startTime = time.perf_counter()
+    result = updateFractal()
+    endTime = time.perf_counter()
+    times.append(endTime - startTime)
+    print(f"pass {i} completed")
     
-result = updateGraph()
+average = sum(times)/3
+print(f"took: {round(average, 2)} seconds on average")
+print(f"FPS: {round(1/average, 2)}")
     
 running = True
 while running:
