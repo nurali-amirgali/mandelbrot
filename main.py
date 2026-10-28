@@ -28,7 +28,7 @@ maxColor = (201, 178, 0) #(255,255,255)
 def lerpColor(color1, color2, t):
     return tuple(int(c1 + (c2 - c1) * t) for c1, c2 in zip(color1, color2))
 
-rgbColors = np.zeros((maxTurns + 1, 3))
+rgbColors = np.zeros((maxTurns + 1, 3), dtype=np.uint8)
 def preComputeColors():
     global rgbColors
     turns = np.linspace(0, 1, maxTurns)
@@ -64,20 +64,15 @@ def computeFractal(width, height, graphRangeX, graphRangeY, maxTurns):
             pixels[row, col] = turns
     return pixels
 
-def updateFractal():
-    result = [[(255,255,255)] * WIDTH for _ in range(HEIGHT)]
+def updateFractal(width, height, graphRangeX, graphRangeY, maxTurns):
+    result = np.zeros((width, height, 3))
+    
     startTime = time.perf_counter()
-    fractal = computeFractal(WIDTH, HEIGHT, graphRangeX, graphRangeY, maxTurns)
+    fractal = computeFractal(width, height, graphRangeX, graphRangeY, maxTurns)
+    fractal = fractal.T
     endTime = time.perf_counter()
-    for y in range(HEIGHT):
-        for x in range(WIDTH):
-            turns = fractal[y, x]
-            if turns >= maxTurns:
-                result[y][x] = (0,0,0)
-            else:
-                t = turns/maxTurns
-                color = lerpColor(minColor, maxColor, t)
-                result[y][x] = color
+    
+    result = rgbColors[fractal]
     computeTime = endTime - startTime
     return result, computeTime
 
@@ -85,17 +80,17 @@ preComputeColors()
 
 times = []
 pygameTimes = []
-updateFractal()
+updateFractal(WIDTH, HEIGHT, graphRangeX, graphRangeY, maxTurns)
 for i in range(3):
     startTime = time.perf_counter()
-    result, timeTaken = updateFractal()
+    result, timeTaken = updateFractal(WIDTH, HEIGHT, graphRangeX, graphRangeY, maxTurns)
     endTime = time.perf_counter()
     pygameTimes.append(endTime - startTime)
     times.append(timeTaken)
     print(f"pass {i+1} completed")
 
-average = sum(times)/2
-pygameAverage = sum(pygameTimes)/2
+average = sum(times)/3
+pygameAverage = sum(pygameTimes)/3
 print(f"took: {round(average, 2)} seconds on average")
 print(f"pygame took: {round(pygameAverage, 2)} seconds on average")
 print(f"FPS: {round(1/average, 2)}")
@@ -110,13 +105,7 @@ while running:
                     
     screen.fill(BG_COLOR)
     
-    pixel_array = pygame.PixelArray(screen)
-
-    for pixelY, row in enumerate(result):
-        for pixelX, pixel in enumerate(row):
-            pixel_array[pixelX, pixelY] = pixel
-
-    pixel_array.close() 
+    pygame.surfarray.blit_array(screen, result)
     
     pygame.display.flip()
 
