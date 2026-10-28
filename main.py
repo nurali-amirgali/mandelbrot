@@ -28,6 +28,14 @@ maxColor = (201, 178, 0) #(255,255,255)
 def lerpColor(color1, color2, t):
     return tuple(int(c1 + (c2 - c1) * t) for c1, c2 in zip(color1, color2))
 
+rgbColors = np.zeros((maxTurns + 1, 3))
+def preComputeColors():
+    global rgbColors
+    turns = np.linspace(0, 1, maxTurns)
+    for i, t in enumerate(turns):
+        rgbColors[i] = np.array(lerpColor(minColor, maxColor, t))
+    rgbColors[-1] = np.array((0,0,0))
+
 @njit(parallel=True)
 def computeFractal(width, height, graphRangeX, graphRangeY, maxTurns):
     pixels = np.zeros((height, width), dtype=np.uint16)
@@ -72,6 +80,8 @@ def updateFractal():
                 result[y][x] = color
     computeTime = endTime - startTime
     return result, computeTime
+
+preComputeColors()
 
 times = []
 pygameTimes = []
