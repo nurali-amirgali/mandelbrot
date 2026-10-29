@@ -16,9 +16,10 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("mandelbrot renderer")
     
 clock = pygame.time.Clock()
-    
-graphRangeX = (-2.5,1)
-graphRangeY = (-1,1)
+
+center = (-0.75,0)
+viewRange = (3.5, 2)
+zoom = 1
 
 maxTurns = 200
 
@@ -45,8 +46,8 @@ def computeFractal(width, height, graphRangeX, graphRangeY, maxTurns):
     
     for row in prange(height):
         for col in range(width):            
-            graphX = col * (rangeX/width) - abs(graphRangeX[0])
-            graphY = row * (rangeY/height) - abs(graphRangeY[0])
+            graphX = col * (rangeX/width) + graphRangeX[0]
+            graphY = row * (rangeY/height) + graphRangeY[0]
             
             cx, cy = graphX, graphY
             x, y = 0, 0
@@ -64,44 +65,61 @@ def computeFractal(width, height, graphRangeX, graphRangeY, maxTurns):
             pixels[row, col] = turns
     return pixels
 
+@njit
 def updateFractal(width, height, graphRangeX, graphRangeY, maxTurns):
     result = np.zeros((width, height, 3))
     
-    startTime = time.perf_counter()
     fractal = computeFractal(width, height, graphRangeX, graphRangeY, maxTurns)
     fractal = fractal.T
-    endTime = time.perf_counter()
     
     result = rgbColors[fractal]
-    computeTime = endTime - startTime
-    return result, computeTime
+    return result
+
+def updateRanges(center, viewRange, zoom):
+    halfViewX = viewRange[0]/2
+    graphRangeX = ((center[0] - halfViewX) / zoom, (center[0] + halfViewX) / zoom)
+
+    halfViewY = viewRange[1]/2
+    graphRangeY = ((center[1] - halfViewY) / zoom, (center[1] + halfViewY) / zoom)
+    return graphRangeX, graphRangeY
 
 preComputeColors()
 
 times = []
 pygameTimes = []
-updateFractal(WIDTH, HEIGHT, graphRangeX, graphRangeY, maxTurns)
+
+
+rangeX, rangeY = updateRanges(center, viewRange, zoom)
+result = updateFractal(WIDTH, HEIGHT, rangeX, rangeY, maxTurns)
+'''
 for i in range(3):
     startTime = time.perf_counter()
-    result, timeTaken = updateFractal(WIDTH, HEIGHT, graphRangeX, graphRangeY, maxTurns)
+    result = updateFractal(WIDTH, HEIGHT, graphRangeX, graphRangeY, maxTurns)
     endTime = time.perf_counter()
     pygameTimes.append(endTime - startTime)
-    times.append(timeTaken)
     print(f"pass {i+1} completed")
+'''
 
 average = sum(times)/3
 pygameAverage = sum(pygameTimes)/3
 print(f"took: {round(average, 2)} seconds on average")
 print(f"pygame took: {round(pygameAverage, 2)} seconds on average")
-print(f"FPS: {round(1/average, 2)}")
-    
+#print(f"FPS: {round(1/average, 2)}")
+
 running = True
 while running:
-    clock.tick(FPS)
+    dt = clock.tick(FPS)/1000
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+    
+    dt = min(dt, 1)
+    center = (center[0] - (0.6 * dt), center[1])
+    zoom += 1 * dt
+    
+    rangeX, rangeY = updateRanges(center, viewRange, zoom)
+    result = updateFractal(WIDTH, HEIGHT, rangeX, rangeY, maxTurns)
                     
     screen.fill(BG_COLOR)
     
