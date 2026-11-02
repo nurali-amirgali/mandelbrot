@@ -29,6 +29,11 @@ maxTurns = startTurns
 minColor = (1, 38, 97)
 maxColor = (201, 178, 0) #(255,255,255)
 
+fpsWindow = 1 #in seconds
+fpsLog = []
+fpsFont = pygame.font.Font(None, 50)
+averageFps = 0
+
 def lerpColor(color1, color2, t):
     return tuple(int(c1 + (c2 - c1) * t) for c1, c2 in zip(color1, color2))
 
@@ -124,6 +129,12 @@ while running:
         if event.type == pygame.QUIT:
             running = False
     
+    fpsLog.append(dt)
+    while sum(fpsLog) > fpsWindow:
+        del fpsLog[0]
+    if fpsLog:
+        averageFps = 1/(sum(fpsLog)/len(fpsLog))
+    
     dt = min(dt, 1)
     #center = (center[0] - (0.6 * dt), center[1])
     zoom += (0.5 * zoom) * dt
@@ -139,6 +150,10 @@ while running:
     screen.fill(BG_COLOR)
     
     pygame.surfarray.blit_array(screen, result)
+    
+    fpsText = fpsFont.render(f"FPS: {round(averageFps)}", True, (255,255,255))
+    width, height = fpsFont.size(f"FPS: {round(averageFps)}")
+    screen.blit(fpsText, (WIDTH/2 - width/2, 10))
     
     pygame.display.flip()
 
