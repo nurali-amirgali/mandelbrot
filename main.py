@@ -32,13 +32,16 @@ maxColor = (201, 178, 0) #(255,255,255)
 def lerpColor(color1, color2, t):
     return tuple(int(c1 + (c2 - c1) * t) for c1, c2 in zip(color1, color2))
 
-rgbColors = np.zeros((maxTurns + 1, 3), dtype=np.uint8)
+def getTurns(zoom):
+    return int(startTurns * (zoom / startZoom) ** (np.log(2) / np.log(FConstant)))
+
+palleteSize = 1200
+rgbColors = np.zeros((palleteSize, 3), dtype=np.uint8)
 def preComputeColors():
     global rgbColors
-    turns = np.linspace(0, 1, maxTurns)
+    turns = np.linspace(0, 1, palleteSize)
     for i, t in enumerate(turns):
         rgbColors[i] = np.array(lerpColor(minColor, maxColor, t))
-    rgbColors[-1] = np.array((0,0,0))
 
 @njit(parallel=True)
 def computeFractal(width, height, graphRangeX, graphRangeY, maxTurns):
@@ -68,14 +71,18 @@ def computeFractal(width, height, graphRangeX, graphRangeY, maxTurns):
             pixels[row, col] = turns
     return pixels
 
-@njit
+colorCurve = 1
 def updateFractal(width, height, graphRangeX, graphRangeY, maxTurns):
     result = np.zeros((width, height, 3))
     
-    fractal = computeFractal(width, height, graphRangeX, graphRangeY, maxTurns)
-    fractal = fractal.T
+    fractal = computeFractal(width, height, graphRangeX, graphRangeY, maxTurns).T
     
-    result = rgbColors[fractal]
+    possibleValues = np.arange(maxTurns + 1)
+    t = (possibleValues/maxTurns) ** colorCurve
+    
+    result = rgbColors[(t * (palleteSize - 1)).astype(np.intp)]
+    result[maxTurns] = 0
+    result = result[fractal]
     return result
 
 def updateRanges(center, viewRange, zoom):
@@ -124,6 +131,7 @@ while running:
     if zoom >= startZoom * FConstant:
         zoom = startZoom
         
+    maxTurns = getTurns(zoom)
     
     rangeX, rangeY = updateRanges(center, viewRange, zoom)
     result = updateFractal(WIDTH, HEIGHT, rangeX, rangeY, maxTurns)
