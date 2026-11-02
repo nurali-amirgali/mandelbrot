@@ -1,6 +1,7 @@
 import pygame
 import sys
 import time
+import threading
 import numpy as np
 from numba import njit, prange
 
@@ -19,12 +20,14 @@ clock = pygame.time.Clock()
 
 FConstant = 4.669201609102990
 startZoom = FConstant ** 3
-startTurns = 400
+startTurns = 500
 
 center = (-1.401155189,0)
 viewRange = (3.5, 2)
 zoom = startZoom
 maxTurns = startTurns
+
+actualZoom = startZoom
 
 minColor = (1, 38, 97)
 maxColor = (201, 178, 0) #(255,255,255)
@@ -33,6 +36,9 @@ fpsWindow = 1 #in seconds
 fpsLog = []
 fpsFont = pygame.font.Font(None, 50)
 averageFps = 0
+
+resultLock = threading.Lock()
+savedResult = None
 
 def lerpColor(color1, color2, t):
     return tuple(int(c1 + (c2 - c1) * t) for c1, c2 in zip(color1, color2))
@@ -98,28 +104,27 @@ def updateRanges(center, viewRange, zoom):
     graphRangeY = (center[1] - halfViewY, center[1] + halfViewY)
     return graphRangeX, graphRangeY
 
+def runFractalUpdate():
+    global savedResult, actualZoom
+    while True:
+        maxTurns = getTurns(zoom)
+            
+        rangeX, rangeY = updateRanges(center, viewRange, zoom)
+        result = updateFractal(WIDTH, HEIGHT, rangeX, rangeY, maxTurns)
+        with resultLock:
+            savedResult = result
+            actualZoom = zoom
+
+savedResult = None
 preComputeColors()
 
-times = []
-pygameTimes = []
-
-
 rangeX, rangeY = updateRanges(center, viewRange, zoom)
-result = updateFractal(WIDTH, HEIGHT, rangeX, rangeY, maxTurns)
-'''
-for i in range(3):
-    startTime = time.perf_counter()
-    result = updateFractal(WIDTH, HEIGHT, graphRangeX, graphRangeY, maxTurns)
-    endTime = time.perf_counter()
-    pygameTimes.append(endTime - startTime)
-    print(f"pass {i+1} completed")
-'''
+savedResult = updateFractal(WIDTH, HEIGHT, rangeX, rangeY, maxTurns)
 
-average = sum(times)/3
-pygameAverage = sum(pygameTimes)/3
-print(f"took: {round(average, 2)} seconds on average")
-print(f"pygame took: {round(pygameAverage, 2)} seconds on average")
-#print(f"FPS: {round(1/average, 2)}")
+thread = threading.Thread(target=runFractalUpdate, daemon=True)
+thread.start()
+
+renderSurface = pygame.Surface((WIDTH, HEIGHT))
 
 running = True
 while running:
@@ -142,14 +147,15 @@ while running:
     if zoom >= startZoom * FConstant:
         zoom = startZoom
         
-    maxTurns = getTurns(zoom)
+    zoomDelta = (zoom/actualZoom)
     
-    rangeX, rangeY = updateRanges(center, viewRange, zoom)
-    result = updateFractal(WIDTH, HEIGHT, rangeX, rangeY, maxTurns)
                     
     screen.fill(BG_COLOR)
     
-    pygame.surfarray.blit_array(screen, result)
+    with resultLock:
+        pygame.surfarray.blit_array(renderSurface, savedResult)
+    
+    screen.blit(renderSurface, (0,0))
     
     fpsText = fpsFont.render(f"FPS: {round(averageFps)}", True, (255,255,255))
     width, height = fpsFont.size(f"FPS: {round(averageFps)}")
