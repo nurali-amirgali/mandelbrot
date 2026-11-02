@@ -17,11 +17,13 @@ pygame.display.set_caption("mandelbrot renderer")
     
 clock = pygame.time.Clock()
 
-center = (-0.75,0)
+center = (-1.401155189,0)
 viewRange = (3.5, 2)
 zoom = 1
 
 maxTurns = 200
+
+FConstant = 4.669201609102990
 
 minColor = (1, 38, 97)
 maxColor = (201, 178, 0) #(255,255,255)
@@ -76,11 +78,11 @@ def updateFractal(width, height, graphRangeX, graphRangeY, maxTurns):
     return result
 
 def updateRanges(center, viewRange, zoom):
-    halfViewX = viewRange[0]/2
-    graphRangeX = ((center[0] - halfViewX) / zoom, (center[0] + halfViewX) / zoom)
+    halfViewX = viewRange[0]/(2 * zoom)
+    graphRangeX = (center[0] - halfViewX, center[0] + halfViewX)
 
-    halfViewY = viewRange[1]/2
-    graphRangeY = ((center[1] - halfViewY) / zoom, (center[1] + halfViewY) / zoom)
+    halfViewY = viewRange[1]/(2 * zoom)
+    graphRangeY = (center[1] - halfViewY, center[1] + halfViewY)
     return graphRangeX, graphRangeY
 
 preComputeColors()
@@ -115,8 +117,8 @@ while running:
             running = False
     
     dt = min(dt, 1)
-    center = (center[0] - (0.6 * dt), center[1])
-    zoom += 1 * dt
+    #center = (center[0] - (0.6 * dt), center[1])
+    zoom += (0.9 * zoom) * dt
     
     rangeX, rangeY = updateRanges(center, viewRange, zoom)
     result = updateFractal(WIDTH, HEIGHT, rangeX, rangeY, maxTurns)
