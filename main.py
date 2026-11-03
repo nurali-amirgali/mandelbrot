@@ -28,6 +28,8 @@ zoom = startZoom
 maxTurns = startTurns
 
 actualZoom = startZoom
+renderZoom = startZoom
+lastZoom = startZoom
 
 minColor = (1, 38, 97)
 maxColor = (201, 178, 0) #(255,255,255)
@@ -54,7 +56,7 @@ def preComputeColors():
     for i, t in enumerate(turns):
         rgbColors[i] = np.array(lerpColor(minColor, maxColor, t))
 
-@njit(parallel=True)
+@njit(parallel=True, nogil=True)
 def computeFractal(width, height, graphRangeX, graphRangeY, maxTurns):
     pixels = np.zeros((height, width), dtype=np.uint16)
     
@@ -82,6 +84,12 @@ def computeFractal(width, height, graphRangeX, graphRangeY, maxTurns):
             pixels[row, col] = turns
     return pixels
 
+def zoomSurface(surface, zoom):
+    width, height = surface.get_size()
+    cropWidth, cropHeight = int(width / zoom), int(height / zoom)
+    cropRect = pygame.Rect((width - cropWidth) // 2, (height - cropHeight) // 2, cropWidth, cropHeight)
+    return pygame.transform.scale(surface.subsurface(cropRect), (width, height))
+
 colorCurve = 1
 def updateFractal(width, height, graphRangeX, graphRangeY, maxTurns):
     result = np.zeros((width, height, 3))
@@ -107,13 +115,14 @@ def updateRanges(center, viewRange, zoom):
 def runFractalUpdate():
     global savedResult, actualZoom
     while True:
-        maxTurns = getTurns(zoom)
+        startZoom = zoom
+        maxTurns = getTurns(startZoom)
             
-        rangeX, rangeY = updateRanges(center, viewRange, zoom)
+        rangeX, rangeY = updateRanges(center, viewRange, startZoom)
         result = updateFractal(WIDTH, HEIGHT, rangeX, rangeY, maxTurns)
         with resultLock:
             savedResult = result
-            actualZoom = zoom
+            actualZoom = startZoom
 
 savedResult = None
 preComputeColors()
@@ -146,21 +155,29 @@ while running:
     
     if zoom >= startZoom * FConstant:
         zoom = startZoom
-        
-    zoomDelta = (zoom/actualZoom)
-    
-                    
-    screen.fill(BG_COLOR)
     
     with resultLock:
         pygame.surfarray.blit_array(renderSurface, savedResult)
+        renderZoom = actualZoom
     
-    screen.blit(renderSurface, (0,0))
+    if zoom < renderZoom:
+        zoomDelta = ((zoom * FConstant)/renderZoom)
+    else:
+        zoomDelta = (zoom/renderZoom)
+        
+    zoomDelta = max(zoomDelta, 1)
+    zoomedSurface = zoomSurface(renderSurface, zoomDelta)
+                    
+    screen.fill(BG_COLOR)
+    
+    screen.blit(zoomedSurface, (0,0))
     
     fpsText = fpsFont.render(f"FPS: {round(averageFps)}", True, (255,255,255))
     width, height = fpsFont.size(f"FPS: {round(averageFps)}")
     screen.blit(fpsText, (WIDTH/2 - width/2, 10))
     
     pygame.display.flip()
+    
+    lastZoom = renderZoom
 
 pygame.quit()
