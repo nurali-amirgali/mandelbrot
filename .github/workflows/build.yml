@@ -41,17 +41,17 @@ jobs:
 
       - name: Build with PyInstaller
         shell: bash
-        run: pyinstaller --noconfirm --windowed ${{ matrix.onefile }} --name MandelbrotRenderer main.py
+        run: pyinstaller --noconfirm --windowed ${{ matrix.onefile }} --name Mandelbrot main.py
 
       - name: Archive
         shell: bash
         run: |
-          python -c "import shutil; shutil.make_archive('MandelbrotRenderer-${{ matrix.name }}', '${{ matrix.fmt }}', 'dist')"
+          python -c "import shutil; shutil.make_archive('Mandelbrot-${{ matrix.name }}', '${{ matrix.fmt }}', 'dist')"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: MandelbrotRenderer-${{ matrix.name }}
-          path: MandelbrotRenderer-${{ matrix.name }}.*
+          name: Mandelbrot-${{ matrix.name }}
+          path: Mandelbrot-${{ matrix.name }}.*
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
