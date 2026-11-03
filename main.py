@@ -1,6 +1,4 @@
 import pygame
-import sys
-import time
 import threading
 import numpy as np
 from numba import njit, prange
@@ -12,15 +10,15 @@ FPS = 60
 BG_COLOR = (30,30,30)
 
 pygame.init()
-    
+
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("mandelbrot renderer")
-    
+
 clock = pygame.time.Clock()
 
 FConstant = 4.669201609102990
 startZoom = FConstant ** 3
-startTurns = 500
+startTurns = 800
 
 center = (-1.401155189,0)
 viewRange = (3.5, 2)
