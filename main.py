@@ -144,6 +144,8 @@ while running:
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_f:
                 displayFPS = not displayFPS
+            if event.key == pygame.K_ESCAPE:
+                running = False
     
     fpsLog.append(dt)
     while sum(fpsLog) > fpsWindow:
