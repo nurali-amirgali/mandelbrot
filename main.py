@@ -11,7 +11,7 @@ BG_COLOR = (30,30,30)
 
 pygame.init()
 
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+screen = pygame.display.set_mode((WIDTH, HEIGHT), vsync=1)
 pygame.display.set_caption("mandelbrot renderer")
 
 clock = pygame.time.Clock()
@@ -132,6 +132,7 @@ thread = threading.Thread(target=runFractalUpdate, daemon=True)
 thread.start()
 
 renderSurface = pygame.Surface((WIDTH, HEIGHT))
+displayFPS = True
 
 running = True
 while running:
@@ -140,6 +141,9 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_f:
+                displayFPS = not displayFPS
     
     fpsLog.append(dt)
     while sum(fpsLog) > fpsWindow:
@@ -172,7 +176,8 @@ while running:
     
     fpsText = fpsFont.render(f"FPS: {round(averageFps)}", True, (255,255,255))
     width, height = fpsFont.size(f"FPS: {round(averageFps)}")
-    screen.blit(fpsText, (WIDTH/2 - width/2, 10))
+    if displayFPS:
+        screen.blit(fpsText, (WIDTH/2 - width/2, 10))
     
     pygame.display.flip()
     
