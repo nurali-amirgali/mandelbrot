@@ -5,7 +5,7 @@ from numba import njit, prange
 
 WIDTH = 800
 HEIGHT = 600
-FPS = 60
+FPS = 120
 
 BG_COLOR = (30,30,30)
 
