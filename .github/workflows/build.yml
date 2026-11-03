@@ -14,15 +14,21 @@ jobs:
           - os: windows-latest
             name: windows
             fmt: zip
+            sep: ";"
             onefile: "--onefile"
+            icon: "--icon icon.png"
           - os: macos-latest
             name: macos
             fmt: gztar
+            sep: ":"
             onefile: ""
+            icon: "--icon icon.png"
           - os: ubuntu-22.04
             name: linux
             fmt: gztar
+            sep: ":"
             onefile: "--onefile"
+            icon: ""
 
     runs-on: ${{ matrix.os }}
 
@@ -37,11 +43,14 @@ jobs:
         shell: bash
         run: |
           python -m pip install --upgrade pip
-          pip install pyinstaller pygame numpy
+          pip install pyinstaller pygame numpy pillow
 
       - name: Build with PyInstaller
         shell: bash
-        run: pyinstaller --noconfirm --windowed ${{ matrix.onefile }} --name Mandelbrot main.py
+        run: |
+          pyinstaller --noconfirm --windowed ${{ matrix.onefile }} ${{ matrix.icon }} \
+            --add-data "icon.png${{ matrix.sep }}." \
+            --name Mandelbrot main.py
 
       - name: Archive
         shell: bash
