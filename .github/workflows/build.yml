@@ -1,78 +1,81 @@
-name: Build executables
+name: Build Executables
 
 on:
   push:
-    tags: ["v*"]
+    tags:
+      - "v*"
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
+          - os: ubuntu-latest
+            platform: linux
+            artifact: dist/mandelbrot-linux.tar.gz
           - os: windows-latest
-            name: windows
-            fmt: zip
-            sep: ";"
-            onefile: "--onefile"
-            icon: "--icon icon.png"
+            platform: windows
+            artifact: dist/mandelbrot-windows.exe
           - os: macos-latest
-            name: macos
-            fmt: gztar
-            sep: ":"
-            onefile: ""
-            icon: "--icon icon.png"
-          - os: ubuntu-22.04
-            name: linux
-            fmt: gztar
-            sep: ":"
-            onefile: "--onefile"
-            icon: ""
-
-    runs-on: ${{ matrix.os }}
-
+            platform: macos
+            artifact: dist/mandelbrot-macos.zip
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
 
       - name: Install dependencies
-        shell: bash
         run: |
           python -m pip install --upgrade pip
-          pip install pyinstaller pygame numpy pillow
+          pip install -r requirements.txt pyinstaller pillow
 
-      - name: Build with PyInstaller
-        shell: bash
+      - name: Build (Linux)
+        if: matrix.platform == 'linux'
         run: |
-          pyinstaller --noconfirm --windowed ${{ matrix.onefile }} ${{ matrix.icon }} \
-            --add-data "icon.png${{ matrix.sep }}." \
-            --name Mandelbrot main.py
+          pyinstaller --onefile --name mandelbrot main.py
+          tar -czf dist/mandelbrot-linux.tar.gz -C dist mandelbrot
 
-      - name: Archive
-        shell: bash
+      - name: Build (Windows)
+        if: matrix.platform == 'windows'
         run: |
-          python -c "import shutil; shutil.make_archive('Mandelbrot-${{ matrix.name }}', '${{ matrix.fmt }}', 'dist')"
+          pyinstaller --onefile --windowed --name mandelbrot --icon icon.png main.py
+          mv dist/mandelbrot.exe dist/mandelbrot-windows.exe
+
+      - name: Build (macOS)
+        if: matrix.platform == 'macos'
+        run: |
+          pyinstaller --windowed --name mandelbrot --icon icon.png main.py
+          ditto -c -k --keepParent dist/mandelbrot.app dist/mandelbrot-macos.zip
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Mandelbrot-${{ matrix.name }}
-          path: Mandelbrot-${{ matrix.name }}.*
+          name: mandelbrot-${{ matrix.platform }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: error
 
   release:
-    if: startsWith(github.ref, 'refs/tags/')
     needs: build
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:
-          path: artifacts
+          pattern: mandelbrot-*
           merge-multiple: true
+          path: release
+
       - uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/*
+          files: release/*
