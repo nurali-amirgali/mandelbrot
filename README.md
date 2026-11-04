@@ -1,9 +1,9 @@
 # Mandelbrot loop renderer
 This is a simple mandelbrot generator made in python
-![looping gif](mandelbrot.gif)
+![looping mandelbrot gif](mandelbrot.gif)
 
 ## Description
-This is a live realtime mandelbrot loop renderer built in pygame. It renders the infinite loop at a smooth 120 fps. 
+This is a live realtime mandelbrot loop renderer built in pygame. It renders the infinite loop at a smooth 120 fps.
 
 ## Setup
 1. go to the releases page *[HERE](https://github.com/nurali-amirgali/mandelbrot/releases/tag/V1.0)*
@@ -20,12 +20,22 @@ you may choose to build from source instead of using the provided executables.
 - pip
 
 ### STEPS
-1. clone this repo
-2. open the repo folder in the terminal
-3. install the required dependencies \
-```pip install -r requirements.txt```
-4. run the project \
-```python main.py```
+### 1. clone this repo
+```bash
+git clone https://github.com/nurali-amirgali/mandelbrot.git
+```
+### 2. open the repo folder in the terminal
+```bash
+cd mandelbrot
+```
+### 3. install the required dependencies 
+```bash
+pip install -r requirements.txt
+```
+### 4. run the project
+```bash
+python main.py
+```
 
 ## Controls
 - ESC = quit
