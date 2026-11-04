@@ -4,11 +4,11 @@ from numba import njit, prange
 
 WIDTH = 800
 HEIGHT = 600
-FPS = 50
+FPS = 30
 
 FConstant = 4.669201609102990
 startZoom = FConstant ** 3
-startTurns = 800
+startTurns = 5000
 
 center = (-1.401155189,0)
 viewRange = (3.5, 2)
