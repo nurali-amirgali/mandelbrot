@@ -6,7 +6,7 @@ This is a simple mandelbrot generator made in python
 This is a live realtime mandelbrot loop renderer built in pygame. It renders the infinite loop at a smooth 120 fps. 
 
 ## Setup
-1. go to the releases page *[HERE](havent made any releases yet)*
+1. go to the releases page *[HERE](https://github.com/nurali-amirgali/mandelbrot/releases/tag/V1.0)*
 2. download the executable for your specific operating system
 3. run it
 4. depending on the os the anti virus may block the application from running because its unsigned. if that happens click "more info" and then "run anyway"
